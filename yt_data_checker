@@ -1,0 +1,94 @@
+#!/usr/bin/python
+####################################################
+#           Author: Alexander Boyle                #
+# Coding Challenege for Fullscreen. Attn: KaChon   #
+#           Date Published: Oct 5, 2016            #
+####################################################
+
+import sys
+import os
+import csv
+import locale
+from optparse import OptionParser
+
+locale.setlocale( locale.LC_ALL, 'en_US.UTF-8' ) 
+
+
+def cleanChannelID(channelID):
+    """ Format ChannelID for comparrison."""
+
+    value = channelID
+    if "/" in channelID:
+        value = channelID.split("/")[-1]
+    value = value[2:] if "UC" in value[:2] else value
+
+    return value
+
+def cleanSubscriberCount(count):
+    """ Format Subcriber Count for comparrison"""
+    
+    value = None
+    if type(count) is str and "," in count:
+        value = locale.atoi(count)
+    return value
+
+def ingestCsvFile(inputfile):
+    """ Verify and parse input file to dict format.
+        @return dict results
+    """
+
+    results = {}
+    if os.path.isfile(inputfile):
+        with open(inputfile, mode="r") as openfile:
+            parsedfile = csv.DictReader(openfile)
+            for row in parsedfile:
+                newrow = row.items()
+                newrow += [('channelid', cleanChannelID(row['YouTube Channel']))]
+                newrow += [('count', cleanSubscriberCount(row['Subscriber Count']))]
+                results[row['Account Email']] = dict(newrow)
+    return results
+
+def printDiscrepencies(discrepencies):
+    """ Output formatted discrepencies """
+
+    for email, data in discrepencies.items():
+        print email
+
+def compareCsvDataSets(fileone, filetwo, concern=None):
+    """ Compare CSV extracted data from input files"""
+
+    discrepencies = {}
+
+    datasetone = ingestCsvFile(fileone)
+    datasettwo = ingestCsvFile(filetwo)
+
+    if datasetone and datasettwo:
+        for email, dataone in datasetone.items():
+            datatwo = datasettwo.get(email, None)
+            if dataone['channelid'] != datatwo['channelid']:
+                if not concern or concern == 'subscriber_count':
+                    discrepencies[email] = {'d1':dataone, 'd2':datatwo}
+            if dataone['count'] != datatwo['count']:
+                if not concern or concern == 'channel_ownership':
+                    discrepencies[email] = {'d1':dataone, 'd2':datatwo}
+    return discrepencies
+
+if __name__ == "__main__":
+    concern = None
+    concernlist = ['subscriber_count', 'channel_ownership']
+    usage = "usage: %prog file1.csv file2.csv [concern] \
+            \n[concern] options: "+str(", ".join(concernlist))+"."
+    parser = OptionParser(usage=usage)
+    (options, args) = parser.parse_args()
+
+    if len(args) < 2:
+        print "ERROR: Invalid number of files input. Please input 2 csv files for comparrison. \nSee '-h' for usage."
+        sys.exit(1)
+    if len(args) == 3:
+        if args[2] in concernlist:
+            concern = args[2]
+        else:
+            print "WARNING: Concern input '%s' not valid. Outputting ALL results. Please see -h for usage." %args[2]
+
+    discrepencies = compareCsvDataSets(args[0], args[1], concern)
+    printDiscrepencies(discrepencies)
