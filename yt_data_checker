@@ -11,8 +11,6 @@ import os
 import csv
 from optparse import OptionParser
 
-locale.setlocale( locale.LC_ALL, 'en_US.UTF-8' ) 
-
 validcsvkeys = ['Account Email', 'YouTube Channel', 'Subscriber Count']
 concernlist = ['subscriber_count', 'channel_ownership']     #based on criteria from the challenge
 
