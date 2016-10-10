@@ -9,7 +9,6 @@
 import sys
 import os
 import csv
-import locale
 from optparse import OptionParser
 
 locale.setlocale( locale.LC_ALL, 'en_US.UTF-8' ) 
@@ -37,7 +36,7 @@ def parseArgs():
         if not os.path.isfile(arg):
             sys.exit("ERROR: Input file %s does not exist. Exiting ..." %arg)
 
-    return args
+    return args[:3]  #chops off any remaining arguments.
 
 
 def cleanChannelID(channelID):
@@ -63,8 +62,9 @@ def cleanSubscriberCount(count):
     """
     
     value = None
-    if type(count) is str and "," in count:
-        value = locale.atoi(count) #convert any comma valued subscribers count to an integer. 
+    if type(count) is str:
+        count = count.replace(",","") #convert any comma valued subscribers count to an integer.
+        value = int(count)
     return value
 
 def ingestCsvFile(inputfile):
@@ -102,10 +102,10 @@ def compareCsvDataSets(fileone, filetwo, concern=None):
         for email, dataone in datasetone.items():
             datatwo = datasettwo.get(email, None)
             if dataone['channelid'] != datatwo['channelid']:
-                if not concern or concern == 'subscriber_count':
+                if not concern or concern == 'channel_ownership':
                     discrepencies[email] = {'d1':dataone, 'd2':datatwo}
             if dataone['count'] != datatwo['count']:
-                if not concern or concern == 'channel_ownership':
+                if not concern or concern == 'subscriber_count':
                     discrepencies[email] = {'d1':dataone, 'd2':datatwo}
     else:
         plural = "s" if not datasetone and not datasettwo else ""
